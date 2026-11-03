@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
+import { toast } from "sonner";
 
 import { usersApi } from "@/features/users/api/users-api";
 import { handleError } from "@/lib/handle-error";
@@ -9,6 +11,7 @@ import { authApi } from "./auth-api";
 
 export function useAuthService() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const devUserId = useUserSessionStore((s) => s.devUserId);
   const setDevUserId = useUserSessionStore((s) => s.setDevUserId);
 
@@ -21,17 +24,30 @@ export function useAuthService() {
     staleTime: 5 * 60_000,
   });
 
-  const refreshSession = () => queryClient.resetQueries();
+  // A real login replaces any leftover dev identity, then confirms the
+  // cookie session took before sending the user to the chat.
+  const startSession = async (message: string) => {
+    setDevUserId(null);
+    await queryClient.resetQueries();
+    const me = await authApi.getSession.call().catch(() => null);
+    if (!me) {
+      toast.error("Signed in, but no session was started. Check cookie and CORS settings.");
+      return;
+    }
+    queryClient.setQueryData(queryKeys.session(null), me);
+    toast.success(message);
+    navigate("/chat", { replace: true });
+  };
 
   const signIn = useMutation({
     mutationFn: authApi.signIn.call,
-    onSuccess: refreshSession,
+    onSuccess: () => startSession("Signed in"),
     onError: (e) => handleError(e),
   });
 
   const signUp = useMutation({
     mutationFn: authApi.signUp.call,
-    onSuccess: refreshSession,
+    onSuccess: () => startSession("Account created"),
     onError: (e) => handleError(e),
   });
 
