@@ -9,7 +9,7 @@ It serves as the authoritative source of truth for the frontend application.
 
 ### 1.1 Base URLs & Prefixes
 - **REST Endpoints**: Sub-routed per domain with `@Controller('api/...')` or `@Controller('health')`.
-  - Notice: Better Auth handles `/api/auth/*` natively (Google OAuth, email OTP, session, etc.).
+  - Notice: Better Auth handles `/api/auth/*` natively (email/password sign-in, session, etc.).
 - **Global Prefix**: There is **no global prefix** set on the application (`app.setGlobalPrefix(...)` is NOT used), ensuring Better Auth routes are mounted exactly at `/api/auth/*`.
 
 ### 1.2 Authentication & Development Fallback
@@ -488,74 +488,6 @@ Messages are accessible either scoped under a room (`/api/rooms/:roomId/messages
   }
 ]
 ```
-
----
-
-## 8. Media Endpoints (`/api/media`)
-
-Direct uploads bypass backend file streams by generating a presigned Cloudinary upload signature.
-
-### 7.1 Request Direct Upload Signature
-- **Method / Path**: `POST /api/media/signature`
-- **Auth**: Required
-- **Request Body** (`RequestUploadSignatureDto`):
-  - `filename`: `string` (required, 1-255 chars)
-  - `mimeType`: `string` (required, must match allowed regex: `image/(jpeg|png|webp|gif)`, `video/(mp4|webm|quicktime)`, `audio/(mpeg|ogg|wav|webm)`, `application/pdf`, etc.)
-  - `bytes`: `number` (required, 1 to 26,214,400 bytes [25MB max])
-  - `kind`: `string` (required, enum: `'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE'`)
-- **Response**: `200 OK` (`UploadSignatureResponse`):
-```json
-{
-  "mediaId": "018f3a5a-8b9a-7c2d-9e1f-444444444444",
-  "uploadUrl": "https://api.cloudinary.com/v1_1/placeholder-cloud/auto/upload",
-  "storageKey": "chat-uploads/usr_abc123/018f3a5a-8b9a-7c2d-9e1f-444444444444",
-  "params": {
-    "timestamp": 1798863000,
-    "signature": "placeholder-signature-sha256",
-    "api_key": "placeholder-api-key",
-    "public_id": "chat-uploads/usr_abc123/018f3a5a-8b9a-7c2d-9e1f-444444444444"
-  },
-  "expiresAt": "2026-11-02T04:40:00.000Z"
-}
-```
-
-### 7.2 Confirm Upload Success
-- **Method / Path**: `POST /api/media/confirm`
-- **Auth**: Required
-- **Request Body** (`ConfirmUploadDto`):
-  - `mediaId`: `string` (required, UUIDv7)
-  - `storageKey`: `string` (required, 1-512 chars)
-  - `url`: `string` (required, HTTPS URL)
-  - `width`: `number` (optional, integer min 1)
-  - `height`: `number` (optional, integer min 1)
-  - `duration`: `number` (optional, integer min 1)
-- **Response**: `200 OK` (`MediaResponse`):
-```json
-{
-  "id": "018f3a5a-8b9a-7c2d-9e1f-444444444444",
-  "storageKey": "chat-uploads/usr_abc123/018f3a5a-8b9a-7c2d-9e1f-444444444444",
-  "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
-  "kind": "IMAGE",
-  "status": "READY",
-  "bytes": 204800,
-  "width": 1920,
-  "height": 1080,
-  "duration": null,
-  "createdAt": "2026-11-02T04:10:00.000Z"
-}
-```
-
-### 7.3 Get Media Metadata
-- **Method / Path**: `GET /api/media/:mediaId`
-- **Auth**: Required
-- **Path Parameters**: `mediaId` (UUIDv7)
-- **Response**: `200 OK` (`MediaResponse`)
-
-### 7.4 Delete Media
-- **Method / Path**: `DELETE /api/media/:mediaId`
-- **Auth**: Required (Owner only)
-- **Path Parameters**: `mediaId` (UUIDv7)
-- **Response**: `204 No Content`
 
 ---
 
