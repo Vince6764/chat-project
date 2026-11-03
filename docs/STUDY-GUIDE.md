@@ -12,20 +12,19 @@ question here; the pointers are starting places, not answers.
 | Protocol choice | `apps/backend/src/chat/chat.events.ts`, `docs/API.md` | Why WebSockets (Socket.IO) here and not raw TCP sockets? What do you gain and lose? |
 | Handling many clients at once | `chat.gateway.ts` (`handleConnection`, `@SubscribeMessage` handlers) | Node is single-threaded. How does it still serve many sockets? |
 | Broadcasting to all clients | `chat.gateway.ts` (`MESSAGE_SEND`), `realtime/realtime-emitter.service.ts` | How does a message reach people in the same room? Who is in a room? |
-| Two or more server nodes | `docker-compose.yml`, `apps/backend/src/realtime/redis-io.adapter.ts` | Client A is on node-1, client B on node-2. Trace one message from A to B. |
 | Client receives messages | `apps/frontend/app/features/realtime/hooks/use-realtime-events.ts` | Where does an incoming event end up in the UI state? |
-| Server failover | `infra/traefik/dynamic/api.yml`, `apps/frontend/.../use-realtime-events.ts` (`onConnect`) | What detects a dead node? What does the client do next? |
-| Message persistence | `apps/backend/prisma/schema.prisma` (`Message`), `apps/backend/src/messages/messages.service.ts` | What survives if both nodes restart? What is lost? |
+| Reconnecting | `apps/frontend/.../use-realtime-events.ts` (`onConnect`) | What does the client do after the server restarts? |
+| Message persistence | `apps/backend/prisma/schema.prisma` (`Message`), `apps/backend/src/messages/messages.service.ts` | What survives if the node restarts? What is lost? |
 | Missed messages after a drop | `apps/backend/src/messages/room-messages.controller.ts` (sync route) | How does a client catch up after reconnecting? Why an id and not a time? |
-| Extras (creativity) | `apps/backend/src/auth`, `apps/backend/src/rooms`, `apps/backend/src/chat/presence.service.ts` | Which extras exist: login, direct and group rooms, presence, typing, read receipts, attachments? |
+| Extras (creativity) | `apps/backend/src/users`, `apps/backend/src/rooms`, `apps/backend/src/chat/presence.service.ts` | Which extras exist: usernames, direct and group rooms, presence, typing, read receipts, attachments? |
 
 ## Try these (learning exercises)
 
-1. Run the two-node stack. Send messages between two browsers. Stop one node
-   (`docs/DEPLOYMENT.md` has the steps) and watch what the clients do.
+1. Run the backend. Send messages between two browsers. Restart the backend
+   and watch what the clients do.
 2. Follow one `message:send` through the gateway to the database and back out
    to the other client. Write the path as a list of files and functions.
-3. Turn Redis off. What breaks, and for whom? Turn it back on.
+3. Run a second backend node on another port. Why do clients on different nodes stop seeing each other? What would you add to fix it?
 4. Send the same `clientMessageId` twice. What happens, and why is that useful?
 
 ## Left for you to do
@@ -36,10 +35,6 @@ be yours.
 - **Load test.** `apps/backend/test/load/load-test.ts` is an empty stub. Design
   and write a test that connects many clients and sends messages at once, then
   report what you measured.
-- **Known issue.** Signing in or creating an account gives no visible
-  feedback, and sign-in does not always take you to the chat. Find the cause
-  in `apps/frontend/app/features/auth/api/use-auth-service.ts` and the browser's
-  Network tab, then fix it.
 - **Report** (2 to 3 pages): your architecture, the problems you hit and how
   you solved them, how it performed and what you would improve.
 - **User guide**, **code comments** and the **UI screenshot** the assignment
