@@ -56,11 +56,5 @@ export function createBetterAuth(prisma: PrismaService) {
       enabled: true,
     },
 
-    socialProviders: {
-      google: {
-        clientId: requiredEnv('GOOGLE_CLIENT_ID'),
-        clientSecret: requiredEnv('GOOGLE_CLIENT_SECRET'),
-      },
-    },
   });
 }
