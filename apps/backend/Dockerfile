@@ -10,7 +10,7 @@ RUN npm install -g pnpm@${PNPM_VERSION}
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY . .
 # prisma.config.ts requires DATABASE_URL to load; generate never connects, so a placeholder is enough.
@@ -29,7 +29,7 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 COPY --from=builder --chown=node:node /app/dist/ ./dist
 
