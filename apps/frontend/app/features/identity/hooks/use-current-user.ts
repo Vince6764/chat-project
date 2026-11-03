@@ -1,6 +1,6 @@
-import { useAuthService } from "../api/use-auth-service";
+import { useIdentityService } from "../api/use-identity-service";
 
-/** The signed-in user, or null/undefined while loading or signed out. */
+/** The current user, or null/undefined while loading or before joining. */
 export function useCurrentUser() {
-  return useAuthService().session.data ?? null;
+  return useIdentityService().session.data ?? null;
 }

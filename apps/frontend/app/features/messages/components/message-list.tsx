@@ -5,7 +5,7 @@ import { Fragment, useLayoutEffect, useMemo, useRef } from "react";
 import { EmptyState } from "@/components/states/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useCurrentUser } from "@/features/identity/hooks/use-current-user";
 import type { RoomMember } from "@/features/rooms/types/room";
 
 import {

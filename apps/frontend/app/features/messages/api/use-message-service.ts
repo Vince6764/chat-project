@@ -4,7 +4,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useCurrentUser } from "@/features/identity/hooks/use-current-user";
 import type { MediaItem } from "@/features/media/types/media";
 import {
   emitQuiet,

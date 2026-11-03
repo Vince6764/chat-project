@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useCurrentUser } from "@/features/identity/hooks/use-current-user";
 import { usePresenceFor } from "@/features/presence/api/use-presence-service";
 import { UserAvatar } from "@/features/users/components/user-avatar";
 import type { UserSummary } from "@/features/users/types/user";

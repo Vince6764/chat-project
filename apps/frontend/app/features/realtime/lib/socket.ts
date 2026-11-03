@@ -1,6 +1,6 @@
 import { io, type Socket } from "socket.io-client";
 
-import { useUserSessionStore } from "@/features/auth/stores/user-session-store";
+import { useIdentityStore } from "@/features/identity/stores/identity-store";
 import { API_BASE_URL } from "@/lib/api/client";
 
 // Event names mirror docs/API.md (section 9).
@@ -36,11 +36,10 @@ export function getSocket(): Socket | null {
 
 export function connectSocket(): Socket {
   if (socket) return socket;
-  const devUserId = useUserSessionStore.getState().devUserId;
+  const userId = useIdentityStore.getState().userId;
   socket = io(API_BASE_URL, {
     transports: ["websocket"],
-    withCredentials: true,
-    auth: devUserId ? { userId: devUserId } : undefined,
+    auth: userId ? { userId } : undefined,
   });
   return socket;
 }

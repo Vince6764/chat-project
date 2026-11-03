@@ -5,64 +5,39 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 const PANEL = "oklch(0.3 0.07 215)";
 
-type Box = { id: string; label: string; sub: string; x: number; y: number };
+type Box = { id: string; label: string; sub: string; y: number };
 
 const BOXES: Box[] = [
-  { id: "client", label: "Client", sub: "browser", x: 20, y: 20 },
-  { id: "lb", label: "Traefik", sub: "health checks", x: 20, y: 110 },
-  { id: "n1", label: "node-1", sub: "NestJS + Socket.IO", x: 20, y: 200 },
-  { id: "n2", label: "node-2", sub: "NestJS + Socket.IO", x: 20, y: 290 },
+  { id: "client", label: "Client", sub: "browser", y: 30 },
+  { id: "api", label: "API", sub: "NestJS + Socket.IO", y: 140 },
+  { id: "pg", label: "Postgres", sub: "message history", y: 250 },
 ];
 
-/** The route of one message, drawn to scale of its parts. */
+/** The route of one message. */
 function Schematic() {
-  // Left column is the request path; right column is shared state.
-  const w = 150;
-  const h = 52;
-  const nodes = [
-    ...BOXES.map((b) => ({ ...b, x: 30, w })),
-    { id: "redis", label: "Redis", sub: "pub/sub between nodes", x: 250, y: 200, w },
-    { id: "pg", label: "Postgres", sub: "message history", x: 250, y: 290, w },
-  ];
-  const mid = (id: string) => {
-    const n = nodes.find((b) => b.id === id)!;
-    return { l: n.x, r: n.x + n.w, cx: n.x + n.w / 2, t: n.y, b: n.y + h, cy: n.y + h / 2 };
-  };
-  const link = (a: string, b: string) => {
-    const p = mid(a);
-    const q = mid(b);
-    return `M${p.cx} ${p.b}V${q.t}`;
-  };
-  const side = (a: string, b: string) => {
-    const p = mid(a);
-    const q = mid(b);
-    return `M${p.r} ${p.cy}H${q.l}`;
-  };
+  const w = 190;
+  const h = 56;
+  const x = 120;
+  const link = (a: Box, b: Box) => `M${x + w / 2} ${a.y + h}V${b.y}`;
 
   return (
     <svg
-      viewBox="0 0 430 380"
+      viewBox="0 0 430 340"
       className="w-full max-w-md"
       role="img"
-      aria-label="A message travels from the client through Traefik to one of two nodes, which store it in Postgres and relay it through Redis"
+      aria-label="A message travels from the client to the API, which stores it in Postgres and pushes it to the other clients"
     >
       <g fill="none" stroke="currentColor" strokeOpacity=".55" strokeWidth="1.5">
-        <path className="flow-link" d={link("client", "lb")} />
-        <path className="flow-link" d={link("lb", "n1")} />
-        {/* Traefik reaches node-2 around node-1 */}
-        <path className="flow-link" d="M30 162H14V316H30" />
-        <path className="flow-link" d={side("n1", "redis")} />
-        <path className="flow-link" d={side("n2", "pg")} />
-        <path className="flow-link" d={link("redis", "pg")} />
-        <path className="flow-link" d="M180 316H210V226H250" />
+        <path className="flow-link" d={link(BOXES[0], BOXES[1])} />
+        <path className="flow-link" d={link(BOXES[1], BOXES[2])} />
       </g>
-      {nodes.map((n) => (
+      {BOXES.map((n) => (
         <g key={n.id}>
-          <rect x={n.x} y={n.y} width={n.w} height={h} rx="8" fill={PANEL} stroke="currentColor" strokeOpacity=".7" strokeWidth="1.5" />
-          <text x={n.x + 12} y={n.y + 22} className="fill-current font-display text-[15px] font-semibold">
+          <rect x={x} y={n.y} width={w} height={h} rx="8" fill={PANEL} stroke="currentColor" strokeOpacity=".7" strokeWidth="1.5" />
+          <text x={x + 14} y={n.y + 24} className="fill-current font-display text-[15px] font-semibold">
             {n.label}
           </text>
-          <text x={n.x + 12} y={n.y + 40} className="fill-current font-mono text-[10px]" fillOpacity=".7">
+          <text x={x + 14} y={n.y + 43} className="fill-current font-mono text-[10px]" fillOpacity=".7">
             {n.sub}
           </text>
         </g>
@@ -73,21 +48,18 @@ function Schematic() {
 
 const STEPS = [
   "The client sends a message over a WebSocket.",
-  "Traefik hands the connection to a healthy node.",
-  "That node saves the message to Postgres.",
-  "Redis relays it, so the other node can reach its own clients.",
+  "The API saves the message to Postgres.",
+  "It pushes the message to everyone in the room.",
 ];
 
-export function AuthContainer({
+export function IdentityContainer({
   title,
   subtitle,
   children,
-  footer,
 }: {
   title: string;
   subtitle: string;
   children: ReactNode;
-  footer: ReactNode;
 }) {
   return (
     <div className="h-dvh w-full overflow-y-auto">
@@ -109,7 +81,6 @@ export function AuthContainer({
               <p className="text-muted-foreground">{subtitle}</p>
             </div>
             {children}
-            <div className="text-muted-foreground mt-8 text-sm">{footer}</div>
           </div>
         </main>
 

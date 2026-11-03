@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import { toast } from "sonner";
 
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useCurrentUser } from "@/features/identity/hooks/use-current-user";
 import { messagesApi } from "@/features/messages/api/messages-api";
 import type { Message, ReactionSummary } from "@/features/messages/types/message";
 import {

@@ -10,15 +10,16 @@ pnpm dev                 # http://localhost:5173  (set backend FRONTEND_URL to m
 pnpm typecheck && pnpm lint && pnpm build
 ```
 
-Dev login: with `ALLOW_DEV_USER_HEADER=true` on the backend, the sign-in page has a
-"dev login" box that acts as any user id (no password).
+Identity: there are no accounts. The join page asks for a username, calls
+`POST /api/users/join` and keeps the returned id; it is sent as `x-user-id` on
+every request and as `auth.userId` on the socket.
 
 ## Layout
 
 ```text
 app/
-├── routes/       Thin route files (flat routes): auth.*, chat, chat.$roomId
-├── features/     One folder per area: auth, rooms, messages, realtime, presence, users, media
+├── routes/       Thin route files (flat routes): join, chat, chat.$roomId
+├── features/     One folder per area: identity, rooms, messages, realtime, presence, users, media
 │   └── <name>/{api,components,hooks,schemas,stores,types,utils}
 ├── components/   ui/ (shadcn), layout/ (shell, sidebar), states/ (loading, 404, errors)
 ├── providers/    theme, realtime (socket lifetime), drawer (global dialogs)

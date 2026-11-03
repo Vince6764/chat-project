@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
 
 import { ChatShell } from "@/components/layout/chat-shell";
-import { RouteGuard } from "@/features/auth/components/route-guard";
+import { RouteGuard } from "@/features/identity/components/route-guard";
 import { DrawerProvider } from "@/providers/drawer-provider";
 import { RealtimeProvider } from "@/providers/realtime-provider";
 

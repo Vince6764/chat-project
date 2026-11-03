@@ -1,5 +1,4 @@
 import { LogOut, Settings } from "lucide-react";
-import { useNavigate } from "react-router";
 
 import {
   DropdownMenu,
@@ -8,16 +7,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuthService } from "@/features/auth/api/use-auth-service";
+import { useIdentityService } from "@/features/identity/api/use-identity-service";
 import { UserAvatar } from "@/features/users/components/user-avatar";
 import { useProfileDialogStore } from "@/features/users/stores/profile-dialog-store";
 
 import { ThemeToggle } from "./theme-toggle";
 
 export function UserMenu() {
-  const { session, signOut } = useAuthService();
+  const { session, leave } = useIdentityService();
   const onOpenProfile = useProfileDialogStore((s) => s.onOpen);
-  const navigate = useNavigate();
   const me = session.data;
   if (!me) return null;
 
@@ -28,9 +26,6 @@ export function UserMenu() {
           <UserAvatar name={me.name} image={me.image} userId={me.id} />
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium">{me.name}</span>
-            <span className="text-muted-foreground block truncate text-xs">
-              {me.email ?? me.id}
-            </span>
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="start" className="w-56">
@@ -38,14 +33,8 @@ export function UserMenu() {
             <Settings /> Edit profile
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() =>
-              signOut.mutate(undefined, {
-                onSettled: () => navigate("/auth/login", { replace: true }),
-              })
-            }
-          >
-            <LogOut /> Sign out
+          <DropdownMenuItem onClick={leave}>
+            <LogOut /> Switch user
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useCurrentUser } from "@/features/identity/hooks/use-current-user";
 
 import { useUpdateProfile } from "../api/use-user-service";
 import { profileSchema,type ProfileValues } from "../schemas/profile-schema";

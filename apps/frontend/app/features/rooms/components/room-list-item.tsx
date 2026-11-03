@@ -2,7 +2,7 @@ import { BellOff, Pin } from "lucide-react";
 import { NavLink } from "react-router";
 
 import { Badge } from "@/components/ui/badge";
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useCurrentUser } from "@/features/identity/hooks/use-current-user";
 import { UserAvatar } from "@/features/users/components/user-avatar";
 import { cn } from "@/lib/utils";
 

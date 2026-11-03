@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { useUserSessionStore } from "@/features/auth/stores/user-session-store";
+import { useIdentityStore } from "@/features/identity/stores/identity-store";
 import { handleError } from "@/lib/handle-error";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -17,11 +17,11 @@ export function useUserSearch(q: string) {
 
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
-  const devUserId = useUserSessionStore((s) => s.devUserId);
+  const userId = useIdentityStore((s) => s.userId);
   return useMutation({
     mutationFn: usersApi.update.call,
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.session(devUserId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.session(userId) }),
     onError: (e) => handleError(e, "update your profile"),
   });
 }

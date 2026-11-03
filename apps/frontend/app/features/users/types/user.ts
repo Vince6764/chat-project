@@ -6,7 +6,6 @@ export interface UserSummary {
 
 export interface Me {
   id: string;
-  email?: string;
   name: string;
   image: string | null;
 }

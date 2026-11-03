@@ -3,7 +3,7 @@ import { ArrowLeft, Users } from "lucide-react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useCurrentUser } from "@/features/identity/hooks/use-current-user";
 import { usePresence } from "@/features/presence/api/use-presence-service";
 import { UserAvatar } from "@/features/users/components/user-avatar";
 

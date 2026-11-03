@@ -9,7 +9,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useCurrentUser } from "@/features/identity/hooks/use-current-user";
 import { useUserSearch } from "@/features/users/api/use-user-service";
 import { UserAvatar } from "@/features/users/components/user-avatar";
 import type { UserSummary } from "@/features/users/types/user";
