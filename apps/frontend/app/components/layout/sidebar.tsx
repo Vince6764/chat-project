@@ -1,0 +1,33 @@
+import { SquarePen } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/brand/brand-mark";
+import { ConnectionBadge } from "@/features/realtime/components/connection-badge";
+import { RoomList } from "@/features/rooms/components/room-list";
+import { useNewChatStore } from "@/features/rooms/stores/new-chat-store";
+
+import { UserMenu } from "./user-menu";
+
+export function Sidebar() {
+  const onOpen = useNewChatStore((s) => s.onOpen);
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2.5 px-4 pt-4 pb-3">
+        <BrandMark className="text-primary size-7 shrink-0" />
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="font-display truncate text-xl font-bold tracking-tight">relay</p>
+          <ConnectionBadge />
+        </div>
+        <Button
+          size="icon"
+          aria-label="New chat"
+          onClick={() => onOpen()}
+        >
+          <SquarePen />
+        </Button>
+      </div>
+      <RoomList />
+      <UserMenu />
+    </div>
+  );
+}
