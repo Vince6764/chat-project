@@ -1,26 +1,18 @@
-import { CornerUpLeft, FileIcon, Loader2, Paperclip, Pencil, Send, X } from "lucide-react";
+import { CornerUpLeft, Pencil, Send, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
-import { useDropzone } from "react-dropzone";
 import { v7 as uuidv7 } from "uuid";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useMediaUpload } from "@/features/media/hooks/use-media-upload";
-import type { MediaItem } from "@/features/media/types/media";
 import { useTypingEmitter } from "@/features/realtime/hooks/use-typing-emitter";
-import { handleError } from "@/lib/handle-error";
 
 import { useEditMessage, useSendMessage } from "../api/use-message-service";
 import { useComposerStore } from "../stores/composer-store";
 
 const MAX_LENGTH = 2000; // websocket limit (REST allows 4000)
-const MAX_BYTES = 25 * 1024 * 1024;
-const MAX_FILES = 10;
 
 export function MessageComposer({ roomId }: { roomId: string }) {
   const [text, setText] = useState("");
-  const [files, setFiles] = useState<MediaItem[]>([]);
-  const [uploading, setUploading] = useState(0);
   const input = useRef<HTMLTextAreaElement>(null);
 
   const replyTo = useComposerStore((s) => s.replyTo[roomId]);
@@ -29,7 +21,6 @@ export function MessageComposer({ roomId }: { roomId: string }) {
 
   const send = useSendMessage(roomId);
   const edit = useEditMessage(roomId);
-  const upload = useMediaUpload();
   const typing = useTypingEmitter(roomId);
 
   // Entering edit mode loads the message body; reply mode just focuses.
@@ -38,34 +29,8 @@ export function MessageComposer({ roomId }: { roomId: string }) {
     if (editing || replyTo) input.current?.focus();
   }, [editing, replyTo]);
 
-  const onDrop = async (accepted: File[]) => {
-    const room = MAX_FILES - files.length;
-    for (const file of accepted.slice(0, Math.max(room, 0))) {
-      if (file.size > MAX_BYTES) {
-        handleError(new Error(`${file.name} is larger than 25 MB`));
-        continue;
-      }
-      setUploading((n) => n + 1);
-      try {
-        const media = await upload.mutateAsync(file);
-        setFiles((f) => [...f, media]);
-      } catch {
-        /* toast shown by the hook */
-      } finally {
-        setUploading((n) => n - 1);
-      }
-    }
-  };
-
-  const { getRootProps, getInputProps, open, isDragActive } = useDropzone({
-    onDrop,
-    noClick: true,
-    noKeyboard: true,
-    disabled: !!editing,
-  });
-
   const body = text.trim();
-  const canSend = (body.length > 0 || files.length > 0) && uploading === 0;
+  const canSend = body.length > 0;
 
   const submit = () => {
     if (!canSend) return;
@@ -83,11 +48,8 @@ export function MessageComposer({ roomId }: { roomId: string }) {
       clientMessageId: uuidv7(),
       body: body || undefined,
       replyToId: replyTo?.id,
-      mediaIds: files.length ? files.map((f) => f.id) : undefined,
-      attachments: files,
     });
     setText("");
-    setFiles([]);
     setReplyTo(roomId, undefined);
   };
 
@@ -109,11 +71,8 @@ export function MessageComposer({ roomId }: { roomId: string }) {
   };
 
   return (
-    <div {...getRootProps()} className="shrink-0 px-4 pb-4 md:px-6 md:pb-5">
-      <input {...getInputProps()} />
-      <div
-        className={`bg-card focus-within:border-ring focus-within:ring-ring/20 rounded-xl border shadow-sm transition-[border-color,box-shadow] focus-within:ring-4 ${isDragActive ? "border-primary ring-primary/30 ring-2" : ""}`}
-      >
+    <div className="shrink-0 px-4 pb-4 md:px-6 md:pb-5">
+      <div className="bg-card focus-within:border-ring focus-within:ring-ring/20 rounded-xl border shadow-sm transition-[border-color,box-shadow] focus-within:ring-4">
         {(replyTo || editing) && (
           <div className="text-muted-foreground flex items-center gap-2 border-b px-3 py-1.5 text-xs">
             {editing ? <Pencil className="size-3" /> : <CornerUpLeft className="size-3" />}
@@ -128,42 +87,7 @@ export function MessageComposer({ roomId }: { roomId: string }) {
           </div>
         )}
 
-        {(files.length > 0 || uploading > 0) && (
-          <div className="flex flex-wrap gap-2 border-b p-2">
-            {files.map((f) => (
-              <span
-                key={f.id}
-                className="bg-secondary flex items-center gap-1.5 rounded-md py-1 pr-1 pl-2 text-xs"
-              >
-                {f.kind === "IMAGE" ? (
-                  <img src={f.url} alt="" className="size-6 rounded object-cover" />
-                ) : (
-                  <FileIcon className="size-3.5" />
-                )}
-                <span className="max-w-32 truncate">{f.storageKey?.split("/").at(-1) ?? f.kind}</span>
-                <button
-                  type="button"
-                  aria-label="Remove attachment"
-                  onClick={() => setFiles((all) => all.filter((x) => x.id !== f.id))}
-                >
-                  <X className="size-3.5" />
-                </button>
-              </span>
-            ))}
-            {uploading > 0 && (
-              <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <Loader2 className="size-3.5 animate-spin" /> Uploading…
-              </span>
-            )}
-          </div>
-        )}
-
         <div className="flex items-end gap-1 p-1.5">
-          {!editing && (
-            <Button variant="ghost" size="icon" aria-label="Attach files" onClick={open}>
-              <Paperclip />
-            </Button>
-          )}
           <Textarea
             ref={input}
             value={text}

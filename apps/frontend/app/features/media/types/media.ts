@@ -10,11 +10,3 @@ export interface MediaItem {
   height?: number | null;
   duration?: number | null;
 }
-
-export interface UploadSignature {
-  mediaId: string;
-  uploadUrl: string;
-  storageKey: string;
-  params: Record<string, string | number>;
-  expiresAt?: string;
-}
