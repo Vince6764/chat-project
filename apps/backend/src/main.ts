@@ -7,15 +7,14 @@ import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module.js';
 import { createPingHandler } from './health/ping.handler.js';
 import { PrismaService } from './prisma/prisma.service.js';
-import { RedisIoAdapter } from './realtime/redis-io.adapter.js';
 import { corsOriginCallback } from './common/utils/cors.util.js';
 
 dns.setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const app = await NestFactory.create(AppModule);
 
-  // Behind reverse proxy (Traefik)
+  // Behind a reverse proxy (e.g. Render)
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', 1);
 
@@ -41,8 +40,7 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
-      'Authorization',
-      'x-dev-user-id',
+      'x-user-id',
       'X-Requested-With',
       'Accept',
       'Origin',
@@ -50,34 +48,20 @@ async function bootstrap() {
     exposedHeaders: ['X-Node-Id'],
   });
 
-  const redisIoAdapter = new RedisIoAdapter(app);
-  await redisIoAdapter.connectToRedis();
-  app.useWebSocketAdapter(redisIoAdapter);
-
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Relay Chat API')
     .setDescription(
       'Distributed real-time chat application API documentation, schemas, and contract placeholders.',
     )
     .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT / Session',
-        description: 'Better Auth session cookie or bearer token',
-      },
-      'session-auth',
-    )
     .addApiKey(
       {
         type: 'apiKey',
-        name: 'x-dev-user-id',
+        name: 'x-user-id',
         in: 'header',
-        description:
-          'Development-only user header for local testing without cookies (NODE_ENV !== "production")',
+        description: 'Id returned by POST /api/users/join',
       },
-      'dev-user-id',
+      'user-id',
     )
     .build();
 

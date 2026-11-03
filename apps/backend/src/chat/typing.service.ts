@@ -1,59 +1,43 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../realtime/redis.service.js';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class TypingService {
-  private readonly logger = new Logger(TypingService.name);
-  private readonly TYPING_TTL_SECONDS = 5;
-
-  constructor(private readonly redis: RedisService) {}
-
-  private typingKey(roomId: string): string {
-    return `typing:${roomId}`;
-  }
+  private readonly TYPING_TTL_MS = 5_000;
+  private readonly typing = new Map<string, Map<string, number>>();
 
   /**
-   * Records a user as actively typing in a room with an auto-expiring TTL.
+   * Records a user as actively typing in a room; the entry expires on its own.
    */
   async setTyping(roomId: string, userId: string): Promise<void> {
-    try {
-      const key = this.typingKey(roomId);
-      await this.redis.getClient()?.sadd(key, userId);
-      await this.redis.expire(key, this.TYPING_TTL_SECONDS);
-    } catch (err: any) {
-      this.logger.warn(
-        `Failed to set typing state for user ${userId} in ${roomId}: ${err.message}`,
-      );
+    let users = this.typing.get(roomId);
+    if (!users) {
+      users = new Map();
+      this.typing.set(roomId, users);
     }
+    users.set(userId, Date.now() + this.TYPING_TTL_MS);
   }
 
   /**
    * Removes a user from typing state in a room.
    */
   async removeTyping(roomId: string, userId: string): Promise<void> {
-    try {
-      const key = this.typingKey(roomId);
-      await this.redis.getClient()?.srem(key, userId);
-    } catch (err: any) {
-      this.logger.warn(
-        `Failed to remove typing state for user ${userId} in ${roomId}: ${err.message}`,
-      );
-    }
+    const users = this.typing.get(roomId);
+    users?.delete(userId);
+    if (users?.size === 0) this.typing.delete(roomId);
   }
 
   /**
    * Returns list of currently typing user IDs in a room.
    */
   async getTypingUsers(roomId: string): Promise<string[]> {
-    try {
-      const key = this.typingKey(roomId);
-      const members = await this.redis.getClient()?.smembers(key);
-      return members ?? [];
-    } catch (err: any) {
-      this.logger.warn(
-        `Failed to get typing users for room ${roomId}: ${err.message}`,
-      );
-      return [];
+    const users = this.typing.get(roomId);
+    if (!users) return [];
+
+    const now = Date.now();
+    for (const [userId, expiresAt] of users) {
+      if (expiresAt <= now) users.delete(userId);
     }
+    if (users.size === 0) this.typing.delete(roomId);
+    return [...users.keys()];
   }
 }

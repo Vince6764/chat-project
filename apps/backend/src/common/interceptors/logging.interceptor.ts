@@ -19,7 +19,6 @@ export class LoggingInterceptor implements NestInterceptor {
     const request = http.getRequest<
       Request & {
         user?: { id?: string };
-        session?: { user?: { id?: string } };
       }
     >();
     const response = http.getResponse<Response>();
@@ -34,10 +33,7 @@ export class LoggingInterceptor implements NestInterceptor {
         next: () => {
           const duration = Date.now() - startTime;
           const statusCode = response?.statusCode ?? 200;
-          const userId =
-            request?.user?.id ??
-            request?.session?.user?.id ??
-            (request?.headers?.['x-dev-user-id'] as string | undefined);
+          const userId = request?.user?.id;
           const userPart = userId ? ` userId: ${userId}` : '';
           this.logger.log(
             `${method} ${url} ${statusCode} ${duration}ms [nodeId: ${nodeId}${userPart}]`,
@@ -49,10 +45,7 @@ export class LoggingInterceptor implements NestInterceptor {
             typeof err === 'object' && err !== null && 'status' in err
               ? (err as { status: number }).status
               : (response?.statusCode ?? 500);
-          const userId =
-            request?.user?.id ??
-            request?.session?.user?.id ??
-            (request?.headers?.['x-dev-user-id'] as string | undefined);
+          const userId = request?.user?.id;
           const userPart = userId ? ` userId: ${userId}` : '';
           this.logger.warn(
             `${method} ${url} ${statusCode} ${duration}ms [nodeId: ${nodeId}${userPart}]`,

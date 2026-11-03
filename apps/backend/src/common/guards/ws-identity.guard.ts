@@ -4,14 +4,13 @@ import type { Socket } from 'socket.io';
 import { resolveSocketUser, type SocketUser } from '../utils/socket-user.util.js';
 
 @Injectable()
-export class WsAuthGuard implements CanActivate {
+export class WsIdentityGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const client = context.switchToWs().getClient<Socket>();
     if (!client) {
       throw new WsException('Invalid socket context');
     }
 
-    // Check if already authenticated on connection
     let user = (client.data as { user?: SocketUser })?.user;
     if (!user) {
       user = (await resolveSocketUser(client)) ?? undefined;
@@ -21,7 +20,7 @@ export class WsAuthGuard implements CanActivate {
     }
 
     if (!user?.id) {
-      throw new WsException('Unauthorized: Valid session or token required');
+      throw new WsException('Unauthorized: a known user id is required');
     }
 
     return true;

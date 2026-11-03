@@ -1,6 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiOperation,
   ApiSecurity,
   ApiTags,
@@ -14,8 +13,7 @@ import {
 } from './dto/presence.response.js';
 
 @ApiTags('Presence')
-@ApiBearerAuth('session-auth')
-@ApiSecurity('dev-user-id')
+@ApiSecurity('user-id')
 @Controller('api/presence')
 export class PresenceController {
   constructor(private readonly presenceService: PresenceService) {}

@@ -4,7 +4,7 @@ import { PaginationQueryDto } from '../../common/dto/pagination-query.dto.js';
 import { RoomType } from '../../generated/prisma/enums.js';
 
 /**
- * Query filters for listing rooms belonging to the authenticated user.
+ * Query filters for listing rooms belonging to the current user.
  */
 export class ListRoomsQueryDto extends PaginationQueryDto {
   /** Optional filter for archived rooms (parsed from boolean string 'true' or 'false') */

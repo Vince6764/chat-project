@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   MeResponse,
@@ -13,7 +14,30 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Retrieves the authenticated user's private profile.
+   * Finds the user with this name (case-insensitive) or creates it.
+   */
+  async join(name: string): Promise<MeResponse> {
+    const existing = await this.prisma.user.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+    });
+    if (existing) return this.toMeResponse(existing);
+
+    try {
+      const user = await this.prisma.user.create({
+        data: { id: randomUUID(), name },
+      });
+      return this.toMeResponse(user);
+    } catch (err) {
+      const raced = await this.prisma.user.findFirst({
+        where: { name: { equals: name, mode: 'insensitive' } },
+      });
+      if (raced) return this.toMeResponse(raced);
+      throw err;
+    }
+  }
+
+  /**
+   * Retrieves the current user's profile.
    */
   async getMe(userId: string): Promise<MeResponse> {
     const user = await this.prisma.user.findUnique({
@@ -27,7 +51,7 @@ export class UsersService {
   }
 
   /**
-   * Updates display name and/or avatar image for the authenticated user.
+   * Updates display name and/or avatar image for the current user.
    */
   async updateMe(userId: string, dto: UpdateProfileDto): Promise<MeResponse> {
     const user = await this.prisma.user.findUnique({
@@ -49,7 +73,7 @@ export class UsersService {
   }
 
   /**
-   * Searches users by name prefix or substring, omitting sensitive emails.
+   * Searches users by name prefix or substring.
    */
   async searchUsers(
     userId: string,
@@ -61,14 +85,7 @@ export class UsersService {
     const users = await this.prisma.user.findMany({
       where: {
         id: { not: userId },
-        ...(q
-          ? {
-              OR: [
-                { name: { contains: q, mode: 'insensitive' } },
-                { email: { contains: q, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
+        ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
       },
       take: limit,
       select: {
@@ -115,14 +132,12 @@ export class UsersService {
 
   private toMeResponse(user: {
     id: string;
-    email: string;
     name: string;
     image: string | null;
     createdAt: Date;
   }): MeResponse {
     return {
       id: user.id,
-      email: user.email,
       name: user.name,
       image: user.image,
       createdAt: user.createdAt.toISOString(),

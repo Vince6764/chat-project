@@ -1,21 +1,30 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { RedisService } from '../realtime/redis.service.js';
 import type { PresenceSnapshot, UserPresence } from './dto/presence.response.js';
 
 @Injectable()
 export class PresenceService {
   private readonly logger = new Logger(PresenceService.name);
   private readonly HEARTBEAT_TTL_MS = 60_000; // 60 seconds heartbeat expiry
-  private readonly KEY_TTL_SECONDS = 120; // Key expires if all sockets stop heartbeating
 
-  constructor(
-    private readonly redis: RedisService,
-    private readonly prisma: PrismaService,
-  ) {}
+  /** userId -> (socketId -> last heartbeat timestamp) */
+  private readonly connections = new Map<string, Map<string, number>>();
 
-  private presenceKey(userId: string): string {
-    return `presence:${userId}`;
+  constructor(private readonly prisma: PrismaService) {}
+
+  private activeSockets(userId: string): Map<string, number> | undefined {
+    const sockets = this.connections.get(userId);
+    if (!sockets) return undefined;
+
+    const threshold = Date.now() - this.HEARTBEAT_TTL_MS;
+    for (const [socketId, seenAt] of sockets) {
+      if (seenAt < threshold) sockets.delete(socketId);
+    }
+    if (sockets.size === 0) {
+      this.connections.delete(userId);
+      return undefined;
+    }
+    return sockets;
   }
 
   /**
@@ -23,19 +32,11 @@ export class PresenceService {
    * Returns true if this is the user's first connection (transitioned from offline to online).
    */
   async addConnection(userId: string, socketId: string): Promise<boolean> {
-    const key = this.presenceKey(userId);
-    const now = Date.now();
-
-    try {
-      const initialCount = await this.redis.zcard(key);
-      await this.redis.zadd(key, now, socketId);
-      await this.redis.expire(key, this.KEY_TTL_SECONDS);
-
-      return initialCount === 0;
-    } catch (err: any) {
-      this.logger.warn(`Failed to track presence for user ${userId}: ${err.message}`);
-      return false;
-    }
+    const wasOffline = !this.activeSockets(userId);
+    const sockets = this.connections.get(userId) ?? new Map<string, number>();
+    sockets.set(socketId, Date.now());
+    this.connections.set(userId, sockets);
+    return wasOffline;
   }
 
   /**
@@ -46,47 +47,32 @@ export class PresenceService {
     userId: string,
     socketId: string,
   ): Promise<{ wasLast: boolean; lastSeenAt: string }> {
-    const key = this.presenceKey(userId);
     const lastSeenAt = new Date().toISOString();
 
-    try {
-      await this.redis.zrem(key, socketId);
-      const remainingCount = await this.redis.zcard(key);
-
-      if (remainingCount === 0) {
-        // User transitioned to offline - persist lastSeenAt to database
-        await this.prisma.user
-          .update({
-            where: { id: userId },
-            data: { lastSeenAt: new Date(lastSeenAt) },
-          })
-          .catch((err) =>
-            this.logger.warn(`Failed to update lastSeenAt for user ${userId}: ${err.message}`),
-          );
-
-        return { wasLast: true, lastSeenAt };
-      }
-
-      return { wasLast: false, lastSeenAt };
-    } catch (err: any) {
-      this.logger.warn(`Failed to remove presence socket for user ${userId}: ${err.message}`);
+    this.connections.get(userId)?.delete(socketId);
+    if (this.activeSockets(userId)) {
       return { wasLast: false, lastSeenAt };
     }
+
+    await this.prisma.user
+      .update({
+        where: { id: userId },
+        data: { lastSeenAt: new Date(lastSeenAt) },
+      })
+      .catch((err) =>
+        this.logger.warn(`Failed to update lastSeenAt for user ${userId}: ${err.message}`),
+      );
+
+    return { wasLast: true, lastSeenAt };
   }
 
   /**
-   * Refreshes the heartbeat score for an active socket.
+   * Refreshes the heartbeat timestamp for an active socket.
    */
   async heartbeat(userId: string, socketId: string): Promise<void> {
-    const key = this.presenceKey(userId);
-    const now = Date.now();
-
-    try {
-      await this.redis.zadd(key, now, socketId);
-      await this.redis.expire(key, this.KEY_TTL_SECONDS);
-    } catch (err: any) {
-      this.logger.warn(`Presence heartbeat failed for user ${userId}: ${err.message}`);
-    }
+    const sockets = this.connections.get(userId) ?? new Map<string, number>();
+    sockets.set(socketId, Date.now());
+    this.connections.set(userId, sockets);
   }
 
   /**
@@ -102,47 +88,12 @@ export class PresenceService {
     }
 
     const uniqueIds = Array.from(new Set(targetUserIds));
-    const now = Date.now();
-    const threshold = now - this.HEARTBEAT_TTL_MS;
     const offlineIds: string[] = [];
 
-    // Pipeline query to check presence in Redis in a single round-trip
-    const pipeline = this.redis.pipeline();
-
-    if (pipeline) {
-      for (const id of uniqueIds) {
-        const key = this.presenceKey(id);
-        pipeline.zremrangebyscore(key, 0, threshold);
-        pipeline.zcard(key);
-      }
-
-      try {
-        const results = await pipeline.exec();
-        // Results are pairs of [zremrangebyscore, zcard]
-        if (results) {
-          for (let i = 0; i < uniqueIds.length; i++) {
-            const id = uniqueIds[i]!;
-            const zcardResult = results[i * 2 + 1];
-            const count = (zcardResult && zcardResult[1] ? Number(zcardResult[1]) : 0);
-
-            if (count > 0 || id === userId) {
-              presence[id] = {
-                online: true,
-                lastSeenAt: null,
-              };
-            } else {
-              offlineIds.push(id);
-            }
-          }
-        }
-      } catch (err: any) {
-        this.logger.warn(`Pipeline presence query failed: ${err.message}. Falling back.`);
-      }
-    }
-
-    // Fallback if Redis was offline or pipeline had errors
     for (const id of uniqueIds) {
-      if (!presence[id] && !offlineIds.includes(id)) {
+      if (id === userId || this.activeSockets(id)) {
+        presence[id] = { online: true, lastSeenAt: null };
+      } else {
         offlineIds.push(id);
       }
     }

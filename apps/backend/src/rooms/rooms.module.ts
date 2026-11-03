@@ -1,7 +1,6 @@
 
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from '../auth/auth.module.js';
 import { ChatModule } from '../chat/chat.module.js';
 
 import { RoomMemberGuard } from '../common/guards/room-member.guard.js';
@@ -13,7 +12,6 @@ import { RoomsService } from './rooms.service.js';
 
 @Module({
   imports: [
-    AuthModule,
     ChatModule,
   ],
   controllers: [RoomsController],

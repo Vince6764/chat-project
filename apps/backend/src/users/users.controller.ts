@@ -1,13 +1,14 @@
-import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiOperation,
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Public } from '../common/decorators/public.decorator.js';
 import { UserIdParamDto } from '../common/dto/user-id-param.dto.js';
 import { UsersService } from './users.service.js';
+import { JoinDto } from './dto/join.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { SearchUsersQueryDto } from './dto/search-users-query.dto.js';
 import type {
@@ -16,29 +17,25 @@ import type {
   UserSummaryResponse,
 } from './dto/user.response.js';
 
-import { UseGuards } from '@nestjs/common';
-
-import {
-  AuthGuard,
-  OptionalAuth,
-} from '@thallesp/nestjs-better-auth';
-
-
-
 @ApiTags('Users')
-@ApiBearerAuth('session-auth')
+@ApiSecurity('user-id')
 @Controller('api/users')
-@UseGuards(AuthGuard)
-@OptionalAuth()
-
-
-
-
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   /**
-   * Retrieves the current authenticated user's profile.
+   * Picks a username: returns the existing user with that name or creates one.
+   * The returned id is what the client sends as `x-user-id` afterwards.
+   */
+  @Public()
+  @ApiOperation({ summary: 'Join with a username (find or create)' })
+  @Post('join')
+  async join(@Body() dto: JoinDto): Promise<MeResponse> {
+    return this.usersService.join(dto.name);
+  }
+
+  /**
+   * Retrieves the current user's profile.
    */
   @ApiOperation({ summary: "Get current authenticated user's profile" })
   @Get('me')

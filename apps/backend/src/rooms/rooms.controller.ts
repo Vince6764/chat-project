@@ -13,7 +13,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiOperation,
   ApiSecurity,
   ApiTags,
@@ -46,14 +45,9 @@ import type {
   RoomPageResponse,
   RoomPreferenceUpdateResponse,
 } from './dto/room.response.js';
-import {
-  AuthGuard,
-} from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Rooms')
-@ApiBearerAuth('session-auth')
-@ApiSecurity('dev-user-id')
-@UseGuards(AuthGuard)
+@ApiSecurity('user-id')
 @Controller('api/rooms')
 
 

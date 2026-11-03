@@ -1,6 +1,5 @@
 /**
  * Public summary of a user for messages, rooms, and search results.
- * Never exposes email or sensitive credentials.
  */
 export interface UserSummaryResponse {
   id: string;
@@ -17,8 +16,6 @@ export interface UserProfileResponse extends UserSummaryResponse {
 }
 
 /**
- * Full private profile of the authenticated user (`/api/users/me`, docs/API.md §4.1).
+ * Profile of the current user (`/api/users/me`, docs/API.md §4.1).
  */
-export interface MeResponse extends UserProfileResponse {
-  email: string;
-}
+export type MeResponse = UserProfileResponse;

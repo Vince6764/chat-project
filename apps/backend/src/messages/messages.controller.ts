@@ -11,7 +11,6 @@ import {
   Query,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiOperation,
   ApiSecurity,
   ApiTags,
@@ -29,8 +28,7 @@ import type {
 } from './dto/message.response.js';
 
 @ApiTags('Messages')
-@ApiBearerAuth('session-auth')
-@ApiSecurity('dev-user-id')
+@ApiSecurity('user-id')
 @Controller('api/messages')
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}

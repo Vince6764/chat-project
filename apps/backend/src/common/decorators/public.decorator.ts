@@ -1,6 +1,4 @@
-import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
+import { SetMetadata } from '@nestjs/common';
 
-/**
- * Re-export AllowAnonymous as Public to mark routes that skip authentication.
- */
-export const Public = AllowAnonymous;
+/** Marks a route as reachable without an `x-user-id` header. */
+export const Public = () => SetMetadata('PUBLIC', true);

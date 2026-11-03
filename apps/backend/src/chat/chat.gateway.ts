@@ -10,7 +10,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { WsAuthGuard } from '../common/guards/ws-auth.guard.js';
+import { WsIdentityGuard } from '../common/guards/ws-identity.guard.js';
 import { WsThrottleGuard } from '../common/guards/ws-throttle.guard.js';
 import { WS_CLIENT_EVENTS, WS_SERVER_EVENTS } from './chat.events.js';
 import { PresenceService } from './presence.service.js';
@@ -42,7 +42,7 @@ export interface WsAckError {
   },
   transports: ['websocket', 'polling'],
 })
-@UseGuards(WsAuthGuard, WsThrottleGuard)
+@UseGuards(WsIdentityGuard, WsThrottleGuard)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,
@@ -155,7 +155,7 @@ export class ChatGateway
   }
 
   /**
-   * Periodic socket heartbeat to refresh presence TTL in Redis.
+   * Periodic socket heartbeat to refresh presence.
    */
   @SubscribeMessage('presence:heartbeat')
   async handleHeartbeat(@ConnectedSocket() client: Socket): Promise<{ ok: true }> {
@@ -233,7 +233,7 @@ export class ChatGateway
   }
 
   /**
-   * Receives and broadcasts a new chat message cross-node via Redis.
+   * Receives and broadcasts a new chat message to the room.
    */
   @SubscribeMessage(WS_CLIENT_EVENTS.MESSAGE_SEND)
   async handleSendMessage(
@@ -257,12 +257,11 @@ export class ChatGateway
         payload,
       );
 
-      // Cross-node broadcast via Socket.IO Redis adapter
       if (this.server) {
         this.server.to(payload.roomId).emit(WS_SERVER_EVENTS.MESSAGE_NEW, message);
       }
       this.logger.log(
-        `Broadcast message ${payload.clientMessageId} to room ${payload.roomId} across cluster`,
+        `Broadcast message ${payload.clientMessageId} to room ${payload.roomId}`,
       );
       return { ok: true, roomId: payload.roomId, data: message };
     } catch (err: unknown) {

@@ -1,41 +1,30 @@
-
 import {
   createParamDecorator,
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
 
-interface AuthenticatedRequest {
+interface IdentifiedRequest {
   user?: Record<string, unknown> | null;
-  session?: {
-    user?: Record<string, unknown>;
-  } | null;
 }
 
 /**
- * Extracts the authenticated user or a specific user property.
- *
- * Authentication must already have been validated by Better Auth's AuthGuard.
+ * Extracts the identified user or one of its properties.
+ * The IdentityGuard has already resolved `request.user`.
  */
 export const CurrentUser = createParamDecorator(
   (data: string | undefined, ctx: ExecutionContext): unknown => {
-    const request = ctx
-      .switchToHttp()
-      .getRequest<AuthenticatedRequest>();
-
-    const user = request.user ?? request.session?.user;
+    const user = ctx.switchToHttp().getRequest<IdentifiedRequest>().user;
 
     if (!user) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException('Pick a username to continue');
     }
 
     if (data) {
       const value = user[data];
 
       if (value === undefined || value === null) {
-        throw new UnauthorizedException(
-          `User property "${data}" not found`,
-        );
+        throw new UnauthorizedException(`User property "${data}" not found`);
       }
 
       return value;

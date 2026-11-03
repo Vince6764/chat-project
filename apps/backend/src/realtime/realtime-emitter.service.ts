@@ -5,8 +5,7 @@ import type { Server } from 'socket.io';
  * Lets REST services broadcast Socket.IO events without depending on `ChatGateway`
  * (which would create a module cycle: ChatModule -> MessagesModule -> ChatModule).
  *
- * `ChatGateway.afterInit` hands the Socket.IO server to `attach()`. Emitting through the
- * server uses the Redis adapter, so events reach room members on every API node.
+ * `ChatGateway.afterInit` hands the Socket.IO server to `attach()`.
  *
  * Broadcasting is best-effort: a failure is logged and never fails the REST request.
  */
@@ -20,7 +19,7 @@ export class RealtimeEmitter {
     this.server = server;
   }
 
-  /** Emits `event` to every socket subscribed to the room channel (all nodes). */
+  /** Emits `event` to every socket subscribed to the room channel. */
   toRoom(roomId: string, event: string, payload: unknown): void {
     if (!this.server) {
       this.logger.debug(`No socket server attached; dropped "${event}" for room ${roomId}`);
@@ -34,7 +33,7 @@ export class RealtimeEmitter {
   }
 
   /**
-   * Unsubscribes every live socket of `userId` (on any node) from the room channel, so a
+   * Unsubscribes every live socket of `userId` from the room channel, so a
    * removed member stops receiving room broadcasts until they reconnect or re-join.
    */
   async evictUser(roomId: string, userId: string): Promise<void> {
