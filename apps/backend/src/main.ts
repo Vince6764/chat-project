@@ -2,19 +2,28 @@ import 'dotenv/config';
 import dns from 'node:dns';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet';
+import * as helmetModule from 'helmet';
 import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module.js';
 import { createPingHandler } from './health/ping.handler.js';
 import { PrismaService } from './prisma/prisma.service.js';
 import { corsOriginCallback } from './common/utils/cors.util.js';
 
+type HelmetFn = (
+  options?: Record<string, unknown>,
+) => (req: Request, res: Response, next: NextFunction) => void;
+
+// helmet's typings and runtime export differ under ESM, so resolve it safely.
+const helmet = ((helmetModule as any).default ??
+  (helmetModule as any).helmet ??
+  helmetModule) as HelmetFn;
+
 dns.setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Behind a reverse proxy (e.g. Render)
+  // Behind a reverse proxy (e.g. Vercel, Render)
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', 1);
 
